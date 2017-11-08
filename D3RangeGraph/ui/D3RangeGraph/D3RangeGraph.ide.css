@@ -1,0 +1,5 @@
+﻿.widget-divider-helper { background:#9da0a4; height:4px; width:100px; }
+.widget-divider { background:#9da0a4; }
+.full-width { width: 100% !important; }
+.full-height { height: 100% !important; }
+#workspace .selected-widget.widget-divider .ui-resizable-se { display:none !important; }
