@@ -1,3 +1,15 @@
+# 1.1
+
+Resolved an issue that caused thresholds to not update when bound if the number of thresholds did not change.
+
+# 1.0.559
+
+Resolved an issue that would cause the chart to render incorrectly if it was placed in a container that is hidden when the chart is first rendered.
+
+Resolved an issue that would cause the chart to render incorrectly when displayed in a popup.
+
+Resolved an issue that would cause the legend to render incorrectly when the chart was resized.
+
 # 1.0.551
 
 Fixed an issue that caused the hover points to appear in the wrong color when using custom colors.

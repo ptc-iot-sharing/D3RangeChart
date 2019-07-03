@@ -121,7 +121,15 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 	/**
 	 * Invoked by the runtime after the HTML content has been added to the page.
 	 */
-	this.afterRender = function() {
+	this.afterRender = async function() {
+
+		var callback;
+
+		if (!chart.jqElement[0].offsetHeight) {
+			callback = await (chart.afterRendered = new Promise(function (resolve, reject) {
+				chart.afterRenderResolve = resolve;
+			}));
+		}
 
 		if (!D3RangeGraphFontsLoaded) {
 			D3RangeGraphFontsLoaded = true;
@@ -502,6 +510,8 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 
 		chart.eventHandlersInitialize();
 
+		if (callback) callback();
+
 	};
 
 	/**
@@ -513,7 +523,21 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 
 		//this.timelineHeight = 72;
 
+		if (chart.afterRenderResolve) {
+			if (!chart.jqElement[0].offsetHeight) return;
+			// If after render did not finish invoking, invoke it now
+			var resolve = chart.afterRenderResolve;
+			chart.afterRenderResolve = undefined;
+			return resolve(this.resize.bind(this, width, height));
+		}
+
 		try {
+
+			// The legend should be updated before all other measurements as the chart's size depends upon how the legend items fit within the chart's space.
+			if (chart.getProperty('ShowLegend')) {
+				this.width = width - this.margin.left - this.margin.right,
+				chart.legendUpdateAnimated(NO);
+			}
 		
 			if (secondaryChartOnly) {
 				barChartHeight = chart.jqElement.outerHeight() - legendCurrentHeight - 25; // The -15 pixels account for the X axis
@@ -657,7 +681,10 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 	 *	@param ActualDataRows <[Object]>			For infotable properties, the rows array of the infotable.
 	 * }
 	 */
-	this.updateProperty = function(updatePropertyInfo) {
+	this.updateProperty = async function(updatePropertyInfo) {
+		// Ensure that afterRender has finished doing its job before processing any property update
+		if (chart.afterRenderResolve) await chart.afterRendered;
+
 		var key = updatePropertyInfo.TargetProperty;
 
 		/*********************************** RANGES *********************************/
@@ -1066,14 +1093,27 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 				}
 
 				if ($.Velocity) {
+					// Remove the previous top/left
+					element[0].style.left = '0px';
+					element[0].style.top = '0px';
 					element.velocity({translateX: xCaret + 'px', translateY: yCaret + 'px', opacity: 1, translateZ: 0, scaleY: 1}, {duration: animationDuration, easing: 'easeInOutQuad'});
 				}
 				else {
+					element[0].style.transform = '';
 					element.animate({left: xCaret + 'px', top: yCaret + 'px', opacity: 1}, {duration: animationDuration});
 				}
 			}
 			else {
-				element.css({left: xCaret + 'px', top: yCaret + 'px', opacity: 1});
+				if ($.Velocity) {
+					element[0].style.left = '0px';
+					element[0].style.top = '0px';
+					$.Velocity.hook(element, 'translateX', xCaret + 'px');
+					$.Velocity.hook(element, 'translateY', yCaret + 'px');
+				}
+				else {
+					element[0].style.transform = '';
+					element.css({left: xCaret + 'px', top: yCaret + 'px', opacity: 1});
+				}
 			}
 
 			if (legendAlignLeft) xCaret += width * multiplier;
@@ -1294,6 +1334,9 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 			else if (difference < 0) {
 				// There are fewer new Y fields than there were before
 				chart.mainChartTruncateFinalComponentsWithCount(-difference, {animated: animationsEnabled});
+				mainChartYFields = newYFields;
+			}
+			else {
 				mainChartYFields = newYFields;
 			}
 
@@ -1602,10 +1645,19 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 				chart.thresholdTruncateFinalComponentsWithCount(-difference, {animated: animationsEnabled});
 				thresholds = newThresholds;
 			}
+			else {
+				thresholds = newThresholds;
+			}
 
 			thresholdUpdateNeeded = YES;
 			thresholdShouldReapplyProperties = YES;
 			legendUpdateNeeded = YES;
+
+			// This can cause the min-max values to change for the Y axis to change which means that data could need to be updated
+			// TODO separate min/max calculation to avoid unnecessary updates for threshold changes
+			dataUpdateNeeded = YES;
+			dataUpdateNewData = dataUpdateNewData || chart.data;
+			dataUpdateCompactData = dataUpdateCompactData || chart.compactData;
 		}
 
 		//******************* ACTUAL UPDATE HANDLERS ***********************
@@ -2598,6 +2650,7 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 	 * @param group <d3.select>								The D3 selection with the container group.
 	 * {
 	 *	@param ofType <String, nullable>					Defaults to 'line'. Can be set to 'area', in which case the path will be treated as an area fill.
+	 *  @param fromData <[AnyObject]>						The previous data set.
 	 *	@param toData <[AnyObject]>							The new data set.
 	 *	@param usingGenerator <d3.generator>				The D3 component that will generate the path's points.
 	 *	@param initialGenerator <d3.generator, nullable>	Required if animations are enabled and the path has to be created.
@@ -2662,8 +2715,14 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 
 		// Apply the new data and the new opacities
 		if (options.animated) {
-			pathSelection = pathSelection.transition().duration(animationDuration)
-				.attr('d', options.usingGenerator(options.toData));
+			if (options.fromData) {
+				pathSelection = pathSelection.attr('d', options.usingGenerator(options.fromData)).transition().duration(animationDuration).ease('linear')
+					.attrTween('d', () => d3.interpolatePath(options.usingGenerator(options.fromData), options.usingGenerator(options.toData)));
+			}
+			else {
+				pathSelection = pathSelection.transition().duration(animationDuration)
+					.attr('d', options.usingGenerator(options.toData));
+			}
 
 			if (options.ofType == 'area') {
 				pathSelection.style('fill-opacity', options.areaOpacity);
@@ -2826,13 +2885,13 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 					var result = d[mainChartYFields[i]];
 					return result;
 				}
-			));
+			)) || 0;
 
 			var min = d3.min(data.map(function(d) {
 					var result = d[mainChartYFields[i]];
 					return result;
 				}
-			));
+			)) || 0;
 
 			if (mainChartIsAdditive) {
 				maxSum += max;
@@ -2855,6 +2914,18 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 			if (!sharedYAxis) {
 				mainChartYScales[i].domain([min, max]);
 				if (showsSelector) selectorYScales[i].domain(mainChartYScales[i].domain());
+			}
+		}
+
+		// Compute the maximum with thresholds as well
+		if (thresholds) {
+			for (const threshold of thresholds) {
+				if (threshold.threshold > totalMax) {
+					totalMax = totalMax + Math.abs(totalMax) * 0.01;
+				}
+				else if (threshold.threshold < totalMin) {
+					totalMin = totalMin - Math.abs(totalMin) * 0.01;
+				}
 			}
 		}
 
@@ -2932,6 +3003,7 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 			// Update the main chart lines
 			if (config.line) {
 				chart.mainChartUpdatePathInGroup(mainChartLineSVGGroups[i], {
+					fromData:			oldData,
 					toData: 			data,
 					usingGenerator: 	mainChartLineComponents[i],
 					initialGenerator: 	mainChartLineInitialComponent,
@@ -2947,6 +3019,7 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 			// Update the selector chart lines if it is enabled
 			if (showsSelector) {
 				chart.mainChartUpdatePathInGroup(selectorLineSVGGroups[i], {
+					fromData:			oldData,
 					toData: 			data,
 					usingGenerator: 	selectorLineComponents[i],
 					initialGenerator: 	selectorLineInitialComponent,
@@ -2962,6 +3035,7 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 			// Update the main chart fills if they are enabled
 			if (config.fill) {
 				chart.mainChartUpdatePathInGroup(mainChartAreaSVGGroups[i], {
+					fromData:			oldData,
 					ofType:				'area',
 					toData: 			data,
 					usingGenerator: 	mainChartAreaComponents[i],
@@ -4253,6 +4327,10 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 		eventHandlerSupportsWheelGestures = chart.getProperty('EnableTrackGesturesPadAndWheel');
 
 		if (eventHandlerSupportsWheelGestures) {
+			if (window.BMAddSmoothMousewheelInteractionToNode) {
+				window.BMAddSmoothMousewheelInteractionToNode(eventHandlerSVGOverlayNode, {baseAcceleration: 4.5, speedIncrement: 6});
+			}
+
 			eventHandlerSVGOverlay.on('wheel', function () {
 				var event = d3.event;
 
@@ -5140,6 +5218,58 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 
 
 	};
+
+	this.renderToCanvas = function () {
+		var resolve;
+		var promise = new Promise(function (r) { resolve = r; });
+		
+		var combinedStyleBlock = baseStyleBlock;
+
+		for (var i = 0; i < styleBlocks.length; i++) {
+			combinedStyleBlock += '\n' + styleBlocks[i].replace('<style>', '').replace('</style>', '');
+		}
+
+		combinedStyleBlock = '<style class="D3ExportStyleTag"><![CDATA[' + combinedStyleBlock + ']]></style>';
+
+		chart.jqElement.find('defs').append(combinedStyleBlock);
+
+		chart.svg.attr('version', 1.1).attr('xmlns', 'http://www.w3.org/2000/svg').attr('id', this.jqElementId);
+
+		var html = chart.svg.node().outerHTML;
+
+		var imgsrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(html)));
+
+		var canvas = $('<canvas>');
+
+		canvas.css({
+			width: '100%',
+			height: '100%'
+		});
+
+		this.jqElement.append(canvas);
+
+		canvas[0].width = this.jqElement.outerWidth();
+		canvas[0].height = this.jqElement.outerHeight();
+
+		setTimeout(function () {
+			var context = canvas[0].getContext('2d');
+
+			var image = new Image();
+
+			image.onload = function () {
+				context.drawImage(image, 0, 0);
+
+				chart.svg.remove();
+
+				resolve();
+			}
+
+			image.src = imgsrc;
+
+		}, 0);
+
+		return promise;
+	}
 
 	/**
 	 * Invoked by the Thingworx runtime whenever any of this widget's services were triggered.
