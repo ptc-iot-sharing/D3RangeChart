@@ -63,60 +63,75 @@ The D3 Range Chart also supports drawing a secondary chart below the main time-s
  - **SecondaryChartType**: must be set to **bar chart**.
  - The other bar chart fields are all very similar to the main time series chart. There are properties like **BarChartXField**, **BarChartYFields**, **BarChartColors** etc that all work the same as the time series properties explained above.
 
-## Developing
+# Index
 
-### Required software
+- [Usage](#usage)
+- [Development](#development)
+  - [Pre-Requisites](#pre-requisites)
+  - [Development Environment](#development-environment)
+  - [File Structure](#file-structure)
+  - [Build](#build)  
+  - [Deployment](#deployment)
+- [License](#license)
+
+# Usage
+
+To install this extension on Thingworx, you can download one of the release packages and directly import it as an extension.
+
+Alternatively, you can clone this repo and build the extension from it.
+
+# Development
+
+### Pre-Requisites
 
 The following software is required:
 
-* [NodeJS](https://nodejs.org/en/) needs to be installed and added to the `PATH`. You should use the LTS version.
+* [NodeJS](https://nodejs.org/en/): needs to be installed and added to the `PATH`. You should use the LTS version.
+* [gulp command line utility](https://gulpjs.com/docs/en/getting-started/quick-start): is needed to run the build script.
 
 The following software is recommended:
 
-* [Visual Studio Code](https://code.visualstudio.com/): An integrated developer enviroment with great typescript support. You can also use any IDE of your liking, it just that most of the testing was done using VSCode.
+* [Visual Studio Code](https://code.visualstudio.com/): An integrated developer enviroment with great javascript and typescript support. You can also use any IDE of your liking, it just that most of the testing was done using VSCode.
 
-### Proposed folder structure
+### Development Environment
+In order to develop this extension you need to do the following:
+1. Clone this repository
+2. Open `package.json` and configure the `thingworxServer`, `thingworxUser` and `thingworxPassword` as needed.
+3. Run `npm install`. This will install the development dependencies for the project.
+4. Start working on the extension.
 
+Note that whenever you add a new file to the extension, you should also declare it in `metadata.xml` in order for it to be included in the Thingworx extension. Additionally, if the files include comments from which additional definitions should be added to the Typescript definition file, they should be added in the build script in the `DTSFiles` array at the beginning of the script.
+
+If the order of files is important, they will be combined in the order specified in `metadata.xml`.
+
+### File Structure
 ```
-demoWebpackTypescriptWidget
+BMUpdater
 │   README.md         // this file
-│   package.json      // here you specify project name, homepage and dependencies. This is the only file you should edit to start a new project
-│   tsconfig.json     // configuration for the typescript compiler
-│   webpack.config.js // configuration for webpack
-│   metadata.xml      // thingworx metadata file for this widget. This is automatically generated based on your package.json
-│   index.html        // when testing the widget outside of thingworx, the index file used.
+│   package.json      // here you specify Thingworx connection details
+│   metadata.xml      // thingworx metadata file for this widget. This is automatically updated based on your package.json and build settings
+│   LICENSE           // license file
+│   Gulpfile.js       // build script
 └───src               // main folder where your developement will take place
-│   │   index.ts               // source file used when testing the widget outside of twx
-│   │   demoWebpack.ide.ts     // source file for the Composer section of the widget
-│   │   demoWebpack.runtime.ts // source file for the Runtime section of the widget
-│   └───internalLogic          // usually, put the enternal logic into a separate namespace
-│   │   │   file1.ts           // typescript file with internal logic
-│   │   │   file2.js           // javascript file in ES2015 with module
-│   │   │   ...
-│   └───styles        // folder for css styles that you can import into your app using require statements
-│   └───images        // folder for image resources you are statically including using require statements
-│   └───static        // folder for resources that are copied over to the development extension. Think of folder of images that you referece only dynamicaly
-└───build         // temporary folder used during compilation
+│   │   file1.js            // javascript file
+|   |   ...
+└───build             // temporary folder used during compilation
 └───zip               // location of the built extension
 ```
 
-### Developing
+### Build
+To build the extension, run `gulp` in the root of the project. This will generate an extension .zip file in the zip folder in the root of the project.
 
-In order to start developing you need to do the following:
+To build the extension and upload it to Thingworx, run `gulp upload` in the root of the project. The details of the Thingworx server to which the script will upload the extension are declared in the project's `package.json` file. These are:
+ * `thingworxServer` - The server to which the extension will be uploaded.
+ * `thingworxUser` and `thingworxPassword` - The credentials used for uploading. This should be a user that has permission to install extensions.
 
-1. Clone this repository
-    ```
-    git clone http://roicentersvn.ptcnet.ptc.com/placatus/DemoWebpackWidget.git
-    ```
-2. Open `package.json` and configure the `name`, `description`, and other fields you find relevant
-3. Run `npm install`. This will install the development dependencies for this project.
-4. Run `npm run init`. This will create sample runtime and ide typescript files using the name.
-5. Start working on your widget.
+Both of the build tasks can optionally take the `--p` parameter. When this is specified, the build script will generate a production build. Unlike development builds, files in the production build will be combined and minified.
 
-### Building and publishing
+### Deployment
 
-The following commands allow you to build and compile your widget:
+Deployment to Thingworx is part of the build process as explained above. Alternatively, you can manually install the extension that is generated in the zip folder in the root of the project.
 
-* `npm run build`: builds the production version of the widget. Creates a new extension zip file under the `zip` folder. The production version is optimized for sharing and using in production enviroments.
-* `npm run upload`: creates a build, and uploads the extension zip to the thingworx server configured in `package.json`. The build is created for developement, with source-maps enabled.
-* `npm run watch`: watches the source files, and whenever they change, do a build.
+#  License
+
+[MIT License](LICENSE)
