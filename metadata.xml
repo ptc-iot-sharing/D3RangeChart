@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><Entities>
   <ExtensionPackages>
-    <ExtensionPackage name="D3RangeGraph" description="A D3 chart with a time selector." vendor="ThingWorx Customer Service" packageVersion="1.1.14" minimumThingWorxVersion="4.1.0"/>
+    <ExtensionPackage name="D3RangeGraph" description="A D3 chart with a time selector." vendor="ThingWorx Customer Service" packageVersion="1.2.0" minimumThingWorxVersion="4.1.0"/>
   </ExtensionPackages>
   <Widgets>
     <Widget name="D3RangeGraph">

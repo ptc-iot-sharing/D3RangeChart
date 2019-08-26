@@ -2920,11 +2920,12 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 		// Compute the maximum with thresholds as well
 		if (thresholds) {
 			for (const threshold of thresholds) {
-				if (threshold.threshold > totalMax) {
-					totalMax = totalMax + Math.abs(totalMax) * 0.01;
+				const value = threshold.threshold;
+				if (value > totalMax) {
+					totalMax = value + Math.abs(value) * 0.01;
 				}
-				else if (threshold.threshold < totalMin) {
-					totalMin = totalMin - Math.abs(totalMin) * 0.01;
+				else if (value < totalMin) {
+					totalMin = value - Math.abs(value) * 0.01;
 				}
 			}
 		}

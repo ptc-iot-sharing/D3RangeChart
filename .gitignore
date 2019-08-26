@@ -1,0 +1,5 @@
+.gradle/
+.vscode/
+build/
+zip/
+node_modules
