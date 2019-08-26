@@ -29,7 +29,7 @@ A D3-based chart that is highly configurable at runtime.
 
 You can specify fixed horizontal lines in a JSON string by setting and optionally binding the Thresholds property. The property takes a JSON array string like this:
 
-```json
+```js
 [
     {
         threshold: 33, // The threshold is the line’s value
