@@ -534,8 +534,13 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 		try {
 
 			// The legend should be updated before all other measurements as the chart's size depends upon how the legend items fit within the chart's space.
-			if (chart.getProperty('ShowLegend')) {
-				this.width = width - this.margin.left - this.margin.right,
+			if (chart.getProperty('ShowLegend') && chart.data) {
+				this.width = width - rightMargin - 10;
+				this.margin = {	top: 10 + legendCurrentHeight,
+					right: 10,
+					bottom: this.selectorHeight + (barChartHeight + barChartPadding * 2) + (timelineHeight + timelinePadding * 2) + 30,
+					left: rightMargin},
+
 				chart.legendUpdateAnimated(NO);
 			}
 		
@@ -1109,6 +1114,7 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 					element[0].style.top = '0px';
 					$.Velocity.hook(element, 'translateX', xCaret + 'px');
 					$.Velocity.hook(element, 'translateY', yCaret + 'px');
+					element[0].style.opacity = 1;
 				}
 				else {
 					element[0].style.transform = '';

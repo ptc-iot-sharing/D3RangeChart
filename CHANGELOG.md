@@ -1,3 +1,9 @@
+# 1.2.1
+
+Resolved an issue that caused the chart to fail updating if the environment had other widgets using modules. Compatibility with Thingworx 8.5.
+
+Resolved an issue that could cause the legend to fail to display even when it was enabled.
+
 # 1.1
 
 Resolved an issue that caused thresholds to not update when bound if the number of thresholds did not change.

@@ -154,7 +154,7 @@ async function prepareBuild(cb) {
                     let stream = src(group.files.map(f => `${outPath}/${f}`));
 
                     stream.pipe(concat(`${name}.js`))
-                        .pipe(terser({compress: true, mangle: {reserved: ['$w','$b','$j','self']}}))
+                        .pipe(terser({compress: true, mangle: {reserved: ['$w','$b','$j','self','d3']}}))
                         .pipe(dest(outPath))
                         .on('end', resolve);
                 });
