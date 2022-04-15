@@ -133,5 +133,5 @@ Both of the build tasks can optionally take the `--p` parameter. When this is sp
 Deployment to Thingworx is part of the build process as explained above. Alternatively, you can manually install the extension that is generated in the zip folder in the root of the project.
 
 #  License
-
+This Extension is provided as-is and without warranty or support. It is not part of the PTC product suite.
 [MIT License](LICENSE)
