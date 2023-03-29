@@ -1,3 +1,7 @@
+# 1.2.2
+
+Resolved an issue that prevented the chart from rendering until the window was resized.
+
 # 1.2.1
 
 Resolved an issue that caused the chart to fail updating if the environment had other widgets using modules. Compatibility with Thingworx 8.5.
