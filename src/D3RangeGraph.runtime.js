@@ -126,9 +126,13 @@ TW.Runtime.Widgets.D3RangeGraph = function () {
 		var callback;
 
 		if (!chart.jqElement[0].offsetHeight) {
-			callback = await (chart.afterRendered = new Promise(function (resolve, reject) {
-				chart.afterRenderResolve = resolve;
-			}));
+			await new Promise(resolve => window.queueMicrotask(resolve));
+
+			if (!chart.jqElement[0].offsetHeight) {
+				callback = await (chart.afterRendered = new Promise(function (resolve, reject) {
+					chart.afterRenderResolve = resolve;
+				}));
+			}
 		}
 
 		if (!D3RangeGraphFontsLoaded) {
